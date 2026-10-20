@@ -1,5 +1,6 @@
 // endereço da nossa API backend
 const API = 'http://127.0.0.1:8000'
+protegerPagina()   // bloqueia a página se não tiver login
 
 // elementos do formulário e do botão de enviar
 const formAgendamento = document.getElementById('form-agendamento')
@@ -18,7 +19,7 @@ function limparFormulario() {
 
 // ─── Busca os clientes na API e preenche o <select> ───
 async function carregarClientes() {
-  const resposta = await fetch(`${API}/clientes`)
+  const resposta = await fetchAutenticado(`${API}/clientes`)
   const clientes = await resposta.json()
 
   const select = document.getElementById('idcliente')

@@ -1,5 +1,6 @@
 // endereço da nossa API backend
 const API = 'http://127.0.0.1:8000'
+protegerPagina()   // bloqueia a página se não tiver login
 
 // elementos do formulário e do botão de enviar
 const formTatuador = document.getElementById('form-tatuador')
@@ -16,7 +17,7 @@ function limparFormulario() {
 
 // ─── Busca as senioridades na API e preenche o <select> ───
 async function carregarSenioridades() {
-  const resposta = await fetch(`${API}/senioridade`)
+  const resposta = await fetchAutenticado(`${API}/senioridade`)
   const senioridades = await resposta.json()
 
   const select = document.getElementById('idsenioridade')
