@@ -1,34 +1,38 @@
-# ============================================================
-# seguranca.py — Verificação do token JWT
-# Descrição: Função usada pelas rotas protegidas para conferir
-#            se quem está fazendo a requisição tem um token válido.
-# ============================================================
-
+import os
+import jwt
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
-import os
+
+load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITMO = "HS256"
 
-# HTTPBearer() é o que faz o botão "Authorize" aparecer no /docs
-esquema_token = HTTPBearer()
+seguranca = HTTPBearer()
 
-# "Segurança de porta" — confere se o token que veio na requisição é válido
-def verificar_token(credenciais: HTTPAuthorizationCredentials = Depends(esquema_token)):
-    token = credenciais.credentials   # o texto do token, sem a palavra "Bearer" na frente
 
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITMO])
-        return payload   # se quiser, uma rota específica pode usar isso pra saber quem logou
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado, faça login de novo")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Token inválido")
+def verificar_token(
+    credenciais: HTTPAuthorizationCredentials = Depends(seguranca)
+):
+    token = credenciais.credentials
 
-# "Segurança de porta" mais rigoroso — além de conferir o token, exige que seja admin
-def verificar_admin(payload: dict = Depends(verificar_token)):
+    payload = jwt.decode(
+        token,
+        SECRET_KEY,
+        algorithms=[ALGORITMO]
+    )
+
+    return payload
+
+
+def verificar_admin(
+    payload: dict = Depends(verificar_token)
+):
     if payload.get("tipo") != "admin":
-        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso permitido somente para administradores"
+        )
+
     return payload
