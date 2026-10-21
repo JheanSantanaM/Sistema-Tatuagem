@@ -1,11 +1,14 @@
-const API = 'http://127.0.0.1:8000'  // endereço da nossa API
-protegerPagina()   // bloqueia a página se não tiver login
+const API = 'http://127.0.0.1:8000'
+
+protegerPagina()
+
 const formCliente = document.getElementById('form-cliente')
 const botaoSubmit = document.getElementById('btn-submit-cliente')
 
 function limparFormulario() {
   formCliente.reset()
   delete formCliente.dataset.idCliente
+
   botaoSubmit.textContent = 'Cadastrar'
   botaoSubmit.classList.remove('btn-success')
   botaoSubmit.classList.add('btn-primary')
@@ -13,6 +16,12 @@ function limparFormulario() {
 
 async function listarClientes() {
   const resposta = await fetchAutenticado(`${API}/clientes`)
+
+  if (!resposta.ok) {
+    alert('Erro ao carregar clientes.')
+    return
+  }
+
   const clientes = await resposta.json()
 
   const corpo = document.getElementById('corpo-tabela')
@@ -28,10 +37,18 @@ async function listarClientes() {
         <td>${c.cidade ?? '-'}</td>
         <td>${c.uf ?? '-'}</td>
         <td>
-          <button class="btn btn-sm btn-warning me-2" onclick='preencherFormularioEdicao(${JSON.stringify(c)})'>Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="deletarCliente(${c.idcliente})">Excluir</button>
+          <button class="btn btn-sm btn-warning me-2"
+            onclick='preencherFormularioEdicao(${JSON.stringify(c)})'>
+            Editar
+          </button>
+
+          <button class="btn btn-sm btn-danger"
+            onclick="deletarCliente(${c.idcliente})">
+            Excluir
+          </button>
         </td>
-      </tr>`
+      </tr>
+    `
   })
 }
 
@@ -51,19 +68,33 @@ formCliente.addEventListener('submit', async (e) => {
 
   const idCliente = formCliente.dataset.idCliente
 
+  let resposta
+
   if (idCliente) {
-    await fetch(`${API}/clientes/${idCliente}`, {
+    resposta = await fetchAutenticado(`${API}/clientes/${idCliente}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(cliente)
     })
   } else {
-    await fetch(`${API}/clientes`, {
+    resposta = await fetchAutenticado(`${API}/clientes`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(cliente)
     })
   }
+
+  if (!resposta.ok) {
+    const erro = await resposta.json()
+    alert('Erro ao salvar cliente: ' + JSON.stringify(erro))
+    return
+  }
+
+  alert(idCliente ? 'Cliente atualizado!' : 'Cliente cadastrado!')
 
   limparFormulario()
   listarClientes()
@@ -77,6 +108,7 @@ function preencherFormularioEdicao(cliente) {
   document.getElementById('uf').value = cliente.uf || ''
 
   formCliente.dataset.idCliente = cliente.idcliente
+
   botaoSubmit.textContent = 'Salvar alteração'
   botaoSubmit.classList.remove('btn-primary')
   botaoSubmit.classList.add('btn-success')
@@ -85,6 +117,14 @@ function preencherFormularioEdicao(cliente) {
 async function deletarCliente(id) {
   if (!confirm('Tem certeza que deseja excluir este cliente?')) return
 
-  await fetch(`${API}/clientes/${id}`, { method: 'DELETE' })
+  const resposta = await fetchAutenticado(`${API}/clientes/${id}`, {
+    method: 'DELETE'
+  })
+
+  if (!resposta.ok) {
+    alert('Não foi possível excluir o cliente.')
+    return
+  }
+
   listarClientes()
 }

@@ -7,7 +7,7 @@ Se a máquina foi reiniciada desde a última aula, repita os passos de sempre an
 1. **Importe o banco de novo** no phpMyAdmin, aba **Importar**, usando `banco/estudio_tatuagem.sql`.
 2. **Recrie o arquivo `.env`** dentro da pasta `backend`, com a `SECRET_KEY`:
    ```powershell
-   python -c "import secrets; print(secrets.token_hex(32))"
+  python -c "import secrets; print(secrets.token_hex(32))" 
    ```
    ```
    DB_HOST=localhost

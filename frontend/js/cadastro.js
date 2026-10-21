@@ -1,5 +1,7 @@
 const API = 'http://127.0.0.1:8000'
-protegerPagina()   // bloqueia a página se não tiver login
+
+protegerPagina()
+
 const formCadastro = document.getElementById('form-cadastro')
 
 formCadastro.addEventListener('submit', async (e) => {
@@ -13,17 +15,21 @@ formCadastro.addEventListener('submit', async (e) => {
 
   const resposta = await fetchAutenticado(`${API}/usuarios`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify(usuario)
   })
 
+  const resultado = await resposta.json()
+
   if (resposta.ok) {
-    alert('Cadastro feito com sucesso!')
-    window.location.href = 'index.html'
-    // manda pra Landing Page por enquanto — a tela de login de verdade
-    // só vai existir a partir da Aula 15
+    alert('Funcionário cadastrado com sucesso!')
+    formCadastro.reset()
   } else {
-    const erro = await resposta.json()
-    alert('Erro ao cadastrar: ' + JSON.stringify(erro))
+    alert(
+      'Erro ao cadastrar funcionário: ' +
+      JSON.stringify(resultado)
+    )
   }
 })

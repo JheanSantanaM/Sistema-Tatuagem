@@ -1,63 +1,85 @@
-// endereço da nossa API backend
 const API = 'http://127.0.0.1:8000'
-protegerPagina()   // bloqueia a página se não tiver login
 
-// elementos do formulário e do botão de enviar
+protegerPagina()
+
 const formAgendamento = document.getElementById('form-agendamento')
 const botaoSubmit = document.getElementById('btn-submit-agendamento')
 const blocoStatus = document.getElementById('bloco-status')
 
-// limpa o formulário e devolve para o modo de cadastro
 function limparFormulario() {
   formAgendamento.reset()
   delete formAgendamento.dataset.idAgendamento
+
   botaoSubmit.textContent = 'Cadastrar'
   botaoSubmit.classList.remove('btn-success')
   botaoSubmit.classList.add('btn-primary')
-  blocoStatus.style.display = 'none'   // esconde o status de novo — cadastro não usa esse campo
+
+  blocoStatus.style.display = 'none'
 }
 
-// ─── Busca os clientes na API e preenche o <select> ───
 async function carregarClientes() {
   const resposta = await fetchAutenticado(`${API}/clientes`)
+
+  if (!resposta.ok) {
+    alert('Erro ao carregar clientes.')
+    return
+  }
+
   const clientes = await resposta.json()
 
   const select = document.getElementById('idcliente')
+
   select.innerHTML = '<option value="">Cliente...</option>'
 
   clientes.forEach(c => {
-    select.innerHTML += `<option value="${c.idcliente}">${c.nome}</option>`
+    select.innerHTML += `
+      <option value="${c.idcliente}">
+        ${c.nome}
+      </option>
+    `
   })
 }
 
-// ─── Busca os tatuadores na API e preenche o <select> ───
 async function carregarTatuadores() {
-  const resposta = await fetch(`${API}/tatuadores`)
+  const resposta = await fetchAutenticado(`${API}/tatuadores`)
+
+  if (!resposta.ok) {
+    alert('Erro ao carregar tatuadores.')
+    return
+  }
+
   const tatuadores = await resposta.json()
 
   const select = document.getElementById('idtatuador')
+
   select.innerHTML = '<option value="">Tatuador...</option>'
 
   tatuadores.forEach(t => {
-    select.innerHTML += `<option value="${t.idtatuador}">${t.nometatuador}</option>`
+    select.innerHTML += `
+      <option value="${t.idtatuador}">
+        ${t.nometatuador}
+      </option>
+    `
   })
 }
 
-carregarClientes()
-carregarTatuadores()
-
-// ─── Carrega a lista de agendamentos ao abrir a página ───
 async function listarAgendamentos() {
-  const resposta = await fetch(`${API}/agendamentos`)
+  const resposta = await fetchAutenticado(`${API}/agendamentos`)
+
+  if (!resposta.ok) {
+    alert('Erro ao carregar agendamentos.')
+    return
+  }
+
   const agendamentos = await resposta.json()
 
   const corpo = document.getElementById('corpo-tabela')
   corpo.innerHTML = ''
 
   agendamentos.forEach(a => {
-    // se existir um desenho salvo, monta uma miniatura; senão, mostra "-"
     const imagemHtml = a.desenhoaprovado
-      ? `<img src="${API}/uploads/${a.desenhoaprovado}" style="max-width: 60px; max-height: 60px;">`
+      ? `<img src="${API}/uploads/${a.desenhoaprovado}"
+          style="max-width: 60px; max-height: 60px;">`
       : '-'
 
     corpo.innerHTML += `
@@ -70,17 +92,29 @@ async function listarAgendamentos() {
         <td>${a.valortatuagem ?? '-'}</td>
         <td>${a.status}</td>
         <td>${imagemHtml}</td>
+
         <td>
-          <button class="btn btn-sm btn-warning me-2" onclick='preencherFormularioEdicao(${JSON.stringify(a)})'>Editar</button>
-          <button class="btn btn-sm btn-danger" onclick="deletarAgendamento(${a.idagendamento})">Excluir</button>
+          <button
+            class="btn btn-sm btn-warning me-2"
+            onclick='preencherFormularioEdicao(${JSON.stringify(a)})'>
+            Editar
+          </button>
+
+          <button
+            class="btn btn-sm btn-danger"
+            onclick="deletarAgendamento(${a.idagendamento})">
+            Excluir
+          </button>
         </td>
-      </tr>`
+      </tr>
+    `
   })
 }
 
+carregarClientes()
+carregarTatuadores()
 listarAgendamentos()
 
-// ─── Cadastrar e atualizar agendamentos ───
 formAgendamento.addEventListener('submit', async (e) => {
   e.preventDefault()
 
@@ -89,46 +123,119 @@ formAgendamento.addEventListener('submit', async (e) => {
     idtatuador: Number(document.getElementById('idtatuador').value),
     dataagendamento: document.getElementById('dataagendamento').value,
     horaagendamento: document.getElementById('horaagendamento').value,
-    descricaotatuagem: document.getElementById('descricaotatuagem').value || null,
-    valortatuagem: document.getElementById('valortatuagem').value
-      ? Number(document.getElementById('valortatuagem').value)
-      : null,
+    descricaotatuagem:
+      document.getElementById('descricaotatuagem').value || null,
+    valortatuagem:
+      document.getElementById('valortatuagem').value
+        ? Number(document.getElementById('valortatuagem').value)
+        : null,
     status: document.getElementById('status').value
   }
 
   const idAgendamento = formAgendamento.dataset.idAgendamento
-  let idParaUpload = idAgendamento   // qual id vamos usar pra anexar a imagem, se houver uma
+
+  let idParaUpload = idAgendamento
+
+  let resposta
 
   if (idAgendamento) {
-    await fetch(`${API}/agendamentos/${idAgendamento}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(agendamento)
-    })
+    resposta = await fetchAutenticado(
+      `${API}/agendamentos/${idAgendamento}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(agendamento)
+      }
+    )
   } else {
-    const resposta = await fetch(`${API}/agendamentos`, {
+    resposta = await fetchAutenticado(`${API}/agendamentos`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(agendamento)
     })
-    const dados = await resposta.json()
-    idParaUpload = dados.idagendamento   // pega o id que acabou de ser criado
+
+    if (resposta.ok) {
+      const dados = await resposta.json()
+      idParaUpload = dados.idagendamento
+    }
   }
 
-  // ─── Se um arquivo foi escolhido, envia numa segunda chamada, separada ───
+  if (!resposta.ok) {
+    const erro = await resposta.json()
+    alert('Erro ao salvar agendamento: ' + JSON.stringify(erro))
+    return
+  }
+
   const arquivo = document.getElementById('desenho').files[0]
-  if (arquivo) {
-    const formData = new FormData()   // FormData, não JSON — porque tem um arquivo dentro
-    formData.append('arquivo', arquivo)   // "arquivo" precisa ser o mesmo nome do parâmetro no FastAPI
 
-    await fetch(`${API}/agendamentos/${idParaUpload}/desenho`, {
-      method: 'POST',
-      body: formData
-      // repare que aqui NÃO colocamos o header Content-Type — o navegador
-      // define esse cabeçalho sozinho quando o corpo é um FormData
-    })
+  if (arquivo && idParaUpload) {
+    const formData = new FormData()
+
+    formData.append('arquivo', arquivo)
+
+    const respostaUpload = await fetchAutenticado(
+      `${API}/agendamentos/${idParaUpload}/desenho`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    )
+
+    if (!respostaUpload.ok) {
+      alert('Agendamento salvo, mas houve erro ao enviar a imagem.')
+    }
   }
+
+  alert(idAgendamento
+    ? 'Agendamento atualizado!'
+    : 'Agendamento cadastrado!'
+  )
 
   limparFormulario()
   listarAgendamentos()
 })
+
+async function deletarAgendamento(id) {
+  if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
+
+  const resposta = await fetchAutenticado(
+    `${API}/agendamentos/${id}`,
+    {
+      method: 'DELETE'
+    }
+  )
+
+  if (!resposta.ok) {
+    alert('Não foi possível excluir o agendamento.')
+    return
+  }
+
+  listarAgendamentos()
+}
+
+function preencherFormularioEdicao(agendamento) {
+  document.getElementById('idcliente').value = agendamento.idcliente
+  document.getElementById('idtatuador').value = agendamento.idtatuador
+  document.getElementById('dataagendamento').value =
+    agendamento.dataagendamento
+  document.getElementById('horaagendamento').value =
+    agendamento.horaagendamento
+  document.getElementById('descricaotatuagem').value =
+    agendamento.descricaotatuagem || ''
+  document.getElementById('valortatuagem').value =
+    agendamento.valortatuagem || ''
+  document.getElementById('status').value =
+    agendamento.status || 'pendente'
+
+  formAgendamento.dataset.idAgendamento = agendamento.idagendamento
+
+  blocoStatus.style.display = 'block'
+
+  botaoSubmit.textContent = 'Salvar alteração'
+  botaoSubmit.classList.remove('btn-primary')
+  botaoSubmit.classList.add('btn-success')
+}
